@@ -1,0 +1,163 @@
+#include <alloc.h>
+#include <fcntl.h>
+#include <sys\stat.h>
+#include <io.h>
+#include <stdio.h>
+#define __OWNER_IHM_H
+
+#include "ihm.h"
+#define __OWNER_FUNC_H
+#include "mtdbfunc.h"
+
+#ifndef __OWNER_SPDATA_H
+#include "spdata.h"
+#endif
+
+#ifndef __FURNACE_H
+#include "furnace.h"
+#endif
+#ifndef __DATABASE_H
+#include "database.h"
+#endif
+#ifndef __REH_DATA_H
+#include "reh_data.h"
+#endif
+/*#ifndef __V09DATA1_H
+#include "furndata.h"
+#endif
+*/
+#ifndef __GLOBVIEW_H
+#include "globview.h"
+#endif
+#include "globdat.h"
+#include "wrstatus.h"
+
+#ifndef __MTTRACK_H
+#include "..\mttrack\mttrack.h"
+#endif
+
+/*
+int RunSpt = 1;
+float CalcPer;
+int NbBatch;						// Nb of defined batches
+Furnace  *TheFurn;
+Batch    *BatchTab[MaxBatchNb];
+EndzTargetList *TheTargetList;
+ProdTypeList *TheTypeList;
+Metal *MetalTab[22];				// Array of metal pointer (max 22 metal code)
+/*
+int ihm()
+{
+	Metal *MetalTab[NbCodSteel];
+	createMetalList(MetalTab);
+	TheTypeList = createProdTypeList(1,"");
+	TheTargetList = createTargetList(1,"");
+	TheFurn = new Furnace (0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0) ;
+	TheFurn->dataload(1,"");
+	//lecture et creation du batch a l'enfournement s'il existe
+//	DBopen ( DB_ChBatch_Item,0,"");
+
+//	int NbChBatch = DBNbRecord(DB_ChBatch_Item) ;
+//	DBclose(DB_ChBatch_Item);
+
+	int NbBatch = createBatchList(BatchTab,TheFurn,MetalTab,1,"");
+	TheFurn->setChargingBatch(BatchTab[NbBatch-1]);
+	TheFurn->pro_dataload(BatchTab,1,"");
+	TheFurn->ctrl_dataload(1,"");
+
+	int res = LoadDataSP() * LoadDataRunTime("") * LoadDataArret("");
+
+	if (!res) return(-1);
+//	ofstream f;
+//	f.open("furndat.txt", ios::out);
+//	TheFurn->printOn(f);
+//   f.close();
+	Reh_Redraw = 1;
+	ecrEnableAccess();
+	UpdateView();
+
+	delete TheTargetList;
+	delete TheTypeList;
+	int i;
+	for (i=1; i<NbCodSteel; i++) if (MetalTab[i] != NULL) delete MetalTab[i];
+	for (i=0; i<NbBatch; i++) if (BatchTab[i] != NULL) delete BatchTab[i];
+	delete TheFurn;
+	return(1);
+}
+*/
+
+void LogMem()
+{
+	unsigned long mem = farcoreleft();
+	char txt[10];
+	ultoa(mem, txt, 10);
+	WriteStatus(txt);
+}
+
+void CreateObjects()
+{
+	createMetalList(MetalTab);
+	TheTypeList = createProdTypeList(1,"");
+	TheTargetList = createTargetList(1,"");
+	TheFurn = new Furnace (0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0);
+	TheFurn->dataload(1,"");
+	NbBatch = createBatchList(BatchTab,TheFurn,MetalTab,1,"");
+	TheFurn->setChargingBatch(BatchTab[NbBatch-1]);
+	TheFurn->pro_dataload(BatchTab,1,"");
+	TheFurn->ctrl_dataload(1,"");
+	int res = LoadDataSP() * LoadDataRunTime("") * LoadDataArret("")
+	  				* LoadPRefAbsc();
+}
+
+void UpdateObjects()
+{
+	TheFurn->ctrl_dataload(1,"");
+	LoadDataSP() * LoadDataRunTime("") * LoadDataArret("");
+}
+
+void DeleteObjects()
+{
+
+	for (int i = 1; i < NbCodSteel; i++)
+		if (MetalTab[i] != NULL) delete MetalTab[i];
+
+  	for (i = 0; i < NbBatch; i++)
+	  	if (BatchTab[i] != NULL) delete BatchTab[i];
+
+	delete TheTargetList;
+   delete TheTypeList;
+	delete TheFurn;
+}
+
+void UpdateView()
+{
+
+//  VGChangeDisp();	// change display if necessary
+
+// update cursor if necessary
+/*	if (Reh_CursorAction)
+	{
+		switch (Reh_CursorAction)
+		{
+			case 1 : // Right Arrow
+						Reh_UpdateGraphCursor(-77) ;
+						break;
+
+		  case 2 : // Left Arrow
+						Reh_UpdateGraphCursor(-75) ;
+						break;
+			}// end switch
+		// Reset Reh_CursorAction
+			Reh_CursorAction = 0;
+		} // Reh_CursorAction
+  */
+  //update view 7 if required
+//	if (VGDispViewNb == 7 && VGNextViewNb == 7 && Reh_Redraw)
+//	{
+		Reh_UpdateData();
+		Reh_UpdateDisp();
+//	}
+
+//	VGDispHour();
+//	ecrEnableAccess();
+}

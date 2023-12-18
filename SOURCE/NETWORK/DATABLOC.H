@@ -1,0 +1,62 @@
+// File DATABLOC.H	Le 22 Janvier 1996		D. MASSON
+// Definition of datablock received from the PLCs
+
+
+// YAZD Application
+// Number of top and bottom zones
+#define NBZONES_T		4
+// Put in comment if no bottom zones
+//#define NBZONES_B
+// Nb of burners in preheating zone
+//#define NB_BURNERS		7
+//#define NB_BURNERSI	7
+//Number of the data in the block
+//These offsets in the block are used to access each data
+//data exchanged with MOVEMENT & LEVEL 3 PLC
+#define DATA_ACK			0
+#define DATA_READY		DATA_ACK + 1
+#define PROD_CHARGED		DATA_READY + 1
+#define END_FWD_MVT		PROD_CHARGED + 1
+#define END_BCK_MVT		END_FWD_MVT + 1
+#define DIS_BY_DIS		END_BCK_MVT + 1
+#define CHARG_BY_DIS		DIS_BY_DIS + 1
+#define STEP_LENGTH     CHARG_BY_DIS + 1
+#define JOB_ID				STEP_LENGTH + 1
+#define PO_NUMBER       JOB_ID       + 1
+#define STEEL_GRADE 		PO_NUMBER    + 1
+#define STEEL_CODE		STEEL_GRADE  + 5
+#define BLOOM_WIDTH		STEEL_CODE   + 1
+#define BLOOM_THICK		BLOOM_WIDTH  + 1
+#define BLOOM_LENGTH		BLOOM_THICK  + 1
+#define NB_BLOOM			BLOOM_LENGTH + 1
+#define DISCH_TEMP		NB_BLOOM + 1
+#define PROD_RATE		   DISCH_TEMP + 1
+// block exchanged with COMBUSTION PLC
+#define RECUP_TEMP		PROD_RATE + 1
+#define MEAS_TEMP_T		RECUP_TEMP + 1
+#define GAS_FLOW_T		MEAS_TEMP_T + NBZONES_T
+#define AIR_FLOW_T		GAS_FLOW_T + NBZONES_T
+#ifdef NB_BURNERS
+#define BURNER_STAT_T	AIR_FLOW_T + NBZONES_T
+#endif
+#define ACTUAL_SP_T		AIR_FLOW_T + 1
+#define TEMP_SP_T			ACTUAL_SP_T + NBZONES_T
+
+#ifdef NBZONES_B
+#define TEMP_MESUREE_B	ETAT_BRULEUR_H + NB_BURNERS
+#define TEMP_CONSIGNE_B TEMP_MESUREE_B + NBZONES_B
+#define CONSI_ACTU_B    TEMP_CONSIGNE_B + NBZONES_B
+#define DEBIT_GAZ_B     CONSI_ACTU_B + NBZONES_B
+#define DEBIT_AIR_B     DEBIT_GAZ_B + NBZONES_B
+#define ETAT_BRULEUR_B  DEBIT_AIR_B + NBZONES_B
+#endif
+
+//Communication parameters
+#define DBPLC 225 //data bloc numb in MVT PLC
+#define DBREG 225 //data bloc numb in REG PLC
+#define NBPLC 22  //Nb of data in MVT PLC (MVT + level 3 info)
+#define NBREG 18	//Nb of data received from REG PLC
+#define OFFSETREG	10 //offset in DataBlock for start of data in REG PLC
+#define OFFSETMVT	0	//offset in DataBlock for start of data in MVT PLC
+#define OFFSETSP	50 // offset in DataBlock for SP
+#define OFFSETACK	60 // offset in DataBlock for ACKnowledge signal (COM running)

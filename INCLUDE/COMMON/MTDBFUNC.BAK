@@ -1,0 +1,94 @@
+//--------------------------------------------------------------------------
+//                        Module "MTDBFUNC.H"
+//                        ******************
+//
+//           Prototypes des fonctions de "MTDBFUNC.CPP"
+//
+//--------------------------------------------------------------------------
+#ifndef __MTDBFUNC_H
+#define __MTDBFUNC_H
+
+#ifndef __BATCH_H
+#include "batch.h"
+#endif
+#ifndef __METAL_H
+#include "metal.h"
+#endif
+#ifndef __PRODTLST_H
+#include "prodtlst.h"
+#endif
+#ifndef __ENDZTLST_H
+#include "endztlst.h"
+#endif
+#ifndef __FURNACE_H
+#include "furnace.h"
+#endif 
+#ifdef __OWNER_FUNC_H
+// creation de la liste des types de produit
+ProdTypeList *createProdTypeList( int , char * );
+
+// creation de la liste des objectifs
+EndzTargetList *createTargetList ( int , char * );
+
+// creation de la liste des lots
+int createBatchList (Batch * [],Furnace *,Metal * [],int,char *);
+
+// creation de la liste des objets metal
+int createMetalList ( Metal * [] );
+
+//lecture et RAZ des evenènements PLC 
+int LoadPLCEvent(char *PLCEvent,int *cht,char *DB_path);
+
+//lecture des données pour le pacing
+int LoadDataRunTime(char *DB_path);
+
+//lecture des données relatives à l'arrêt en cours
+int LoadDataArret(char *DB_path);
+
+//Lecture des donn‚es sur les setpoints
+int LoadDataSP();
+
+//Lecture des donn‚es sur les abscisses des produits de r‚f‚rence
+int LoadPRefAbsc();
+
+// Ecriture des setpoints dans la DB
+int WriteSPinDB();
+
+// cette fonction ecrit un status relatif à une erreur
+// dans la base de données
+//int WriteStatus(char *);
+// purge la liste des lots
+int purgeBatchList();
+// Recharge un produit
+int recharge_billet();
+
+#endif
+
+#ifdef __OWNER_VAR
+int ProgDelDatBeg[6];  //
+int PacingMode;//
+float TheoProd;//
+float MeasProd;//
+float OperatorProdRate;
+long ProgDelRems;//
+long ImmDelRems;//=0
+int ProductionRate;
+int DelayState; //fixé à 0
+#else
+extern int ProgDelDatBeg[6];  //
+extern int PacingMode;//
+extern float TheoProd;//
+extern float MeasProd;//
+extern float OperatorProdRate;
+extern long ProgDelRems;//
+extern long ImmDelRems;//=0
+extern int ProductionRate;
+extern int DelayState; //fixé à 0
+#endif
+
+#ifdef __OWNER_MAKEPHIS_H 		   // Modif PF03/01/95 : Historiques
+// Creation de la liste des objectifs
+EndzTargetList *createTargetList ( int , char * );
+#endif
+
+#endif

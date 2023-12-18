@@ -1,0 +1,198 @@
+/*--------------------------------------------------------------------------*/
+/*                                                                          */
+/*                        N E T W O R K . CPP                                     */
+/*                                                                          */
+/*                                                                          */
+/*        Programm:       NETWORK                                             */
+/*        Purpose:        read and write DB in S5                           */
+/*                        This program receives a DB from a SIMATIC and then*/
+/*                        sends a data-word to a DB.                        */
+/*                        The user is asked for the number of the DB,       */
+/*                        startnumber and length  of the data field (in the */
+/*                        receive job).                                     */
+/*                        For writing a data word the required parameters   */
+/*                        are the number of DB, which data word and the     */
+/*                        contents of the dataword.                         */
+/*                        The remote TSAP ID are:                           */
+/*                                   (Transport Service Access Point)       */
+/*                        MMI-PR01   (makes a fetch)                        */
+/*                        MMI-PW01  (makes a receive)                       */
+/*        Input:          a valid ethernet address, that  means 12 hex      */
+/*                        numbers, at the command line, otherwise the       */
+/*                        default remote ethernet address 08 00 06 01 0E EE */
+/*                        will be used.                                     */
+/*        compiler notes: This code is written for MS-C 6.0                 */
+/*                        compile in small model with -Zp switch (Byte      */
+/*                        alignement);                                      */
+/*                        -Gs switch (no stack checking) is made through    */
+/*                        program pragma        !!                          */
+/*        project info's:  This file should be linked with call_ina.c       */
+/*        further information:                                              */
+/*                        Refer to INA 960 Release 3.0 Programmer's         */
+/*                        Reference Manual chapter 2.3 (req_block),         */
+/*                        PC Link2 Software Developer's Manual chapter 10.3 */
+/*                        (interface specification, using INT 5BH).         */
+/*                        There are also some notes for further info in     */
+/*                        CALL_INA.C                                        */
+/*--------------------------------------------------------------------------*/
+
+/*--------------------------------------------------------------------------*/
+
+#define __MSC
+#ifndef __STDIO_H
+#include <stdio.h>
+#endif
+#ifndef __DOS_H
+#include <dos.h>
+#endif
+#ifndef __STDLIB_H
+#include <stdlib.h>
+#endif
+#ifndef __STRING_H
+#include <string.h>
+#endif
+#ifndef __CONIO_H
+#include <conio.h>
+#endif
+#ifndef __CALL_INA_H
+#include "call_ina.h"
+#endif
+//#ifndef __NETWORK_H
+#include "network.h"
+//#endif
+#ifndef __S5_H
+#include "s5.h"
+#endif
+
+#define MaxLen 132
+
+/*------------------------------------------------------------------------*/
+#ifndef CUSTOM
+void OpenChannel(unsigned &vcidr,unsigned &vcidw)
+#else
+void OpenChannel(unsigned &vcidr,unsigned &vcidw, unsigned char addr[6],
+						char *TSAPread, char *TSAPwrite)
+#endif
+{
+#ifndef CUSTOM
+	 static unsigned char addr [] = { 0x08,0x00,0x06,0x01,0x02,0x03 };
+						 /* preset remote ethernet address of the PLC */
+#endif
+	 unsigned i;
+
+	 /*----- INA-Driver loaded -----*/
+	 if (ina_test() != 0 )
+	{
+	clrscr();
+	gotoxy(30,24);
+	cputs("                                            ");
+	gotoxy(30,2);
+	printf ("      INA_960 Interface not loaded !!!!!    ");
+	_exit (255);
+	}
+
+	 vcidr = ina_open();
+#ifndef CUSTOM
+	ina_connect(vcidr, addr, "OWS-PR01"); // remote TSAP of the PLC for read
+#else
+	 ina_connect(vcidr, addr, TSAPread); // remote TSAP of the PLC for read
+#endif
+	 vcidw = ina_open();
+#ifndef CUSTOM
+	ina_connect(vcidw, addr, "OWS-PW01"); // remote TSAP of the PLC for write
+#else
+	 ina_connect(vcidw, addr, TSAPwrite); // remote TSAP of the PLC for write
+#endif
+}
+/*------------------------------------------------------------------------*/
+void CloseChannel(unsigned &vcidr,unsigned &vcidw)
+{
+	 ina_close(vcidr);
+	 ina_close(vcidw);
+}
+/*------------------------------------------------------------------------*/
+
+/*------------------------------------------------------------------------*/
+int receiveDB(int vcid,unsigned dbnr,unsigned dbanf,unsigned dblen,unsigned Result[256])
+{                                        /* ===> FETCH/RW in SIMATIC */
+	 static struct { S5_HD_REQ;
+		  } s5_read_req = { S5_RD_INIT };
+
+	 static struct { S5_HD_ACK;
+			 unsigned dw[256];
+		  } s5_read_ack;
+
+	 unsigned i;
+
+	 s5_read_req.dbnr = dbnr;
+	 s5_read_req.a_anf = xhl(dbanf);
+	 s5_read_req.a_len = xhl(dblen); /* words */
+
+	ina_send(vcid, (char *)&s5_read_req, sizeof(s5_read_req));
+	ina_recv(vcid, (char *)&s5_read_ack, sizeof(s5_read_ack));
+	if (!s5_read_ack.ack_error)
+		{
+#ifdef debug
+		printf("              : %s\n", s5_read_ack.dw);
+		for (i=0; i<dblen; i++)
+			printf("%04X ", xhl(s5_read_ack.dw[i]));
+		putchar('\n');
+#endif
+//	 }
+
+//	 {
+		for (i=0; i<dblen; i++) Result[i]=  xhl(s5_read_ack.dw[i]);
+		return(0);
+	 }
+	 else
+	{
+	  printf("\nREAD-Error    : %d", s5_read_ack.ack_error);
+	  return((int) s5_read_ack.ack_error);
+	}
+
+//for (i=0; i<dblen; i++) dwr[i]=  i;
+}
+/*  End receiveDB   */
+/*------------------------------------------------------------------------*/
+int sendDB(int vcid, unsigned dbnr,unsigned dbanf,unsigned dblen,unsigned dwx[256])
+// modif … apporter pour le passage de dwr en argument
+{                                        /* ===> RECEIVE/RW in SIMATIC */
+	 static struct  { S5_HD_REQ;
+			 unsigned dw[1];
+			} s5_write_req = { S5_WR_INIT, 0 };
+
+	 static struct  { S5_HD_ACK;
+			} s5_write_ack;
+
+	 unsigned i;
+
+//    sscanf(str, "%d %d %x", &dbnr, &dbanf, &dwx);
+
+	 s5_write_req.dbnr = dbnr;
+	 s5_write_req.a_anf = xhl(dbanf);
+	 s5_write_req.a_len = xhl(dblen); /* words */
+
+//	 for (i=0; i<dblen; i++)
+		 s5_write_req.dw[0] = xhl(dwx[0]);
+
+	 ina_send(vcid, (char *)&s5_write_req, sizeof(s5_write_req));
+	 ina_recv(vcid, (char *)&s5_write_ack, sizeof(s5_write_ack));
+
+	 if (s5_write_ack.ack_error)
+	  {
+
+/*	gotoxy(30,24);
+	cputs("                   ");
+	gotoxy(30,24);
+*/	printf("WRITE-Error   : %d\n", s5_write_ack.ack_error);
+
+		 return((int) s5_write_ack.ack_error);
+	  }
+	  else
+	  return(0);
+}
+/*  End sendDB   */
+
+
+/*------------------------------------------------------------------------*/
+
